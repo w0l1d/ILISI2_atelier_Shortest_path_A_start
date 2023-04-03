@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Taxi trajectory</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.min.js"></script>
+</head>
+<body>
+<div id="map" style="height: 600px;"></div>
+
+<script>
+    // Define the map center and zoom level
+    var map_center = L.latLng(39.9, 116.4); // Replace with the center of the map
+    var map_zoom = 12; // Replace with the zoom level of the map
+
+    // Create the map
+    var map = L.map('map').setView(map_center, map_zoom);
+
+    // Add the OpenStreetMap tile layer to the map
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, ' +
+            '<a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
+            'Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
+        maxZoom: 18,
+    }).addTo(map);
+
+    // Read taxi data and create clusters
+    d3.csv("saved_clusters_normCoord.csv").then(function(data) {
+        // Convert the data to GeoJSON format
+        var geojson = {
+            type: "FeatureCollection",
+            features: []
+        };
+        data.forEach(function(d) {
+            var feature = {
+                type: "Feature",
+                geometry: {
+                    type: "Point",
+                    coordinates: [d.lon, d.lat]
+                },
+                properties: {
+                    id: d.id,
+                    count: d.count
+                }
+            };
+            geojson.features.push(feature);
+        });
+
+        // Create the clustering layer using Leaflet.markercluster plugin
+        var markers = L.markerClusterGroup({
+            spiderfyOnMaxZoom: false,
+            showCoverageOnHover: false,
+            zoomToBoundsOnClick: true
+        });
+        markers.addLayer(L.geoJSON(geojson, {
+            pointToLayer: function(feature, latlng) {
+                var marker = L.marker(latlng);
+                marker.bindPopup("ID: " + feature.properties.id + "<br>Count: " + feature.properties.count);
+                return marker;
+            }
+        }));
+        map.addLayer(markers);
+    });
+</script>
+</body>
+</html>
